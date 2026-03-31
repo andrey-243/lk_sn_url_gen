@@ -1191,7 +1191,7 @@ function clearHistory() {
 // SHARED DATA (collaborative sync via GitHub raw)
 // ============================================================
 
-const SHARED_DATA_URL = "https://raw.githubusercontent.com/andrey-243/lk_sn_url_gen/main/learned_data.json"
+const SHARED_DATA_URL = "/api/shared-data"
 
 async function loadSharedData() {
   if (!SHARED_DATA_URL) return
