@@ -1239,7 +1239,7 @@ function mergeSharedLearned(shared) {
   }
 }
 
-function exportContribution() {
+async function exportContribution() {
   const data = {
     version: 1,
     last_updated: new Date().toISOString().split("T")[0],
@@ -1247,15 +1247,45 @@ function exportContribution() {
     titles: getLearnedTitles(),
     keywords: getLearnedKeywords()
   }
-  document.getElementById("contribute-json").textContent = JSON.stringify(data, null, 2)
-  document.getElementById("contribute-modal").classList.add("open")
+
+  // Check if there's anything to contribute
+  const hasData = Object.keys(data.geo_ids).length || Object.keys(data.titles).length || Object.keys(data.keywords).length
+  if (!hasData) {
+    alert(currentLang === "fr" ? "Rien à contribuer — générez d'abord des queries en Mode IA." : "Nothing to contribute — generate queries in AI Mode first.")
+    return
+  }
+
+  const btn = document.querySelector("[onclick='exportContribution()']")
+  const origText = btn.textContent
+  btn.textContent = "⏳ Envoi…"
+  btn.disabled = true
+
+  try {
+    const res = await fetch("/api/contribute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    })
+    const json = await res.json()
+    if (res.ok && json.success) {
+      btn.textContent = "✓ Contribué !"
+      btn.style.color = "var(--success)"
+      setTimeout(() => { btn.textContent = origText; btn.style.color = ""; btn.disabled = false }, 3000)
+    } else {
+      throw new Error(json.error || "Unknown error")
+    }
+  } catch(err) {
+    btn.textContent = "✗ Erreur"
+    btn.style.color = "var(--warning)"
+    setTimeout(() => { btn.textContent = origText; btn.style.color = ""; btn.disabled = false }, 3000)
+    console.error("Contribution error:", err)
+  }
 }
 
 function copyContributeJSON() {
   const text = document.getElementById("contribute-json").textContent
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById("btn-copy-contribute")
-    const orig = btn.textContent
     btn.textContent = "✓ " + T("copied")
     setTimeout(() => { btn.textContent = T("contribute_copy"); applyLang() }, 2000)
   })
