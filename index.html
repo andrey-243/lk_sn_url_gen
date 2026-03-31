@@ -1332,21 +1332,40 @@ function copyContributeJSON() {
 // AUTH
 // ============================================================
 const AUTH_KEY = "salesnav_auth"
-const AUTH_PASS = "WeAreLKSNgen"
 
-function checkAuth() {
+async function checkAuth() {
   const input = document.getElementById("auth-input")
   const errEl = document.getElementById("auth-error")
-  if (input.value === AUTH_PASS) {
-    localStorage.setItem(AUTH_KEY, "1")
-    document.getElementById("auth-screen").classList.add("hidden")
-    input.classList.remove("error")
-    errEl.textContent = ""
-  } else {
-    input.classList.add("error")
-    errEl.textContent = "Mot de passe incorrect"
-    input.value = ""
-    input.focus()
+  const btn = document.querySelector("#auth-screen button")
+  const password = input.value
+  if (!password) return
+
+  btn.textContent = "…"
+  btn.disabled = true
+
+  try {
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    })
+    const json = await res.json()
+    if (json.success) {
+      localStorage.setItem(AUTH_KEY, "1")
+      document.getElementById("auth-screen").classList.add("hidden")
+      input.classList.remove("error")
+      errEl.textContent = ""
+    } else {
+      input.classList.add("error")
+      errEl.textContent = "Mot de passe incorrect"
+      input.value = ""
+      input.focus()
+    }
+  } catch {
+    errEl.textContent = "Erreur de connexion"
+  } finally {
+    btn.textContent = "Entrer"
+    btn.disabled = false
   }
 }
 
