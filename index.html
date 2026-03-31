@@ -21,6 +21,32 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
 
+#auth-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+#auth-screen.hidden { display: none; }
+.auth-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 40px 36px; width: 340px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.1); text-align: center;
+}
+.auth-card h1 { font-size: 20px; color: var(--primary); margin-bottom: 6px; }
+.auth-card p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+.auth-card input {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 14px; margin-bottom: 12px;
+  text-align: center; letter-spacing: 2px;
+}
+.auth-card input.error { border-color: var(--warning); }
+.auth-card .err-msg { color: var(--warning); font-size: 12px; margin-bottom: 10px; min-height: 16px; }
+.auth-card button {
+  width: 100%; padding: 10px; background: var(--primary); color: #fff;
+  border: none; border-radius: var(--radius); font-size: 14px;
+  font-weight: 600; cursor: pointer;
+}
+.auth-card button:hover { background: var(--primary-hover); }
+
 header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 header h1 { font-size: 18px; font-weight: 700; color: var(--primary); }
 .header-right { display: flex; align-items: center; gap: 10px; }
@@ -127,6 +153,17 @@ tr:last-child td { border-bottom: none; }
 </style>
 </head>
 <body>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <h1>🔒 Sales Nav Generator</h1>
+    <p>Accès réservé à l'équipe RealAdvisors</p>
+    <input type="password" id="auth-input" placeholder="Mot de passe" autocomplete="off">
+    <div class="err-msg" id="auth-error"></div>
+    <button onclick="checkAuth()">Entrer</button>
+  </div>
+</div>
 
 <header>
   <h1>🔍 Sales Navigator Query Generator</h1>
@@ -1289,6 +1326,36 @@ function copyContributeJSON() {
     btn.textContent = "✓ " + T("copied")
     setTimeout(() => { btn.textContent = T("contribute_copy"); applyLang() }, 2000)
   })
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+const AUTH_KEY = "salesnav_auth"
+const AUTH_PASS = "WeAreLKSNgen"
+
+function checkAuth() {
+  const input = document.getElementById("auth-input")
+  const errEl = document.getElementById("auth-error")
+  if (input.value === AUTH_PASS) {
+    localStorage.setItem(AUTH_KEY, "1")
+    document.getElementById("auth-screen").classList.add("hidden")
+    input.classList.remove("error")
+    errEl.textContent = ""
+  } else {
+    input.classList.add("error")
+    errEl.textContent = "Mot de passe incorrect"
+    input.value = ""
+    input.focus()
+  }
+}
+
+document.getElementById("auth-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") checkAuth()
+})
+
+if (localStorage.getItem(AUTH_KEY) === "1") {
+  document.getElementById("auth-screen").classList.add("hidden")
 }
 
 // ============================================================
