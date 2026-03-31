@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Navigator Query Generator</title>
+<style>
+:root {
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --border: #e0e0e0;
+  --primary: #0a66c2;
+  --primary-hover: #004182;
+  --text: #1d2226;
+  --muted: #666;
+  --success: #057642;
+  --warning: #b24020;
+  --badge-llm: #6e4aba;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+header h1 { font-size: 18px; font-weight: 700; color: var(--primary); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.tabs { display: flex; gap: 4px; }
+.tab-btn { padding: 8px 16px; border: 1px solid var(--border); background: var(--bg); border-radius: var(--radius); cursor: pointer; font-size: 13px; color: var(--muted); transition: all .15s; }
+.tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.tab-btn:hover:not(.active) { background: #e8f0fe; border-color: var(--primary); color: var(--primary); }
+.btn-lang { padding: 6px 14px; border: 2px solid var(--primary); background: transparent; color: var(--primary); border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 700; transition: all .15s; letter-spacing: 1px; }
+.btn-lang:hover { background: var(--primary); color: #fff; }
+
+.container { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+select, input[type=text], input[type=password] {
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 14px; background: #fff; color: var(--text); outline: none;
+  transition: border-color .15s;
+}
+select:focus, input:focus { border-color: var(--primary); }
+select:disabled { background: var(--bg); cursor: not-allowed; }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); margin-top: 12px; }
+.toggle-label { font-size: 14px; color: var(--text); }
+.toggle-label small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.switch { position: relative; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; background: #ccc; border-radius: 12px; cursor: pointer; transition: .2s; }
+.slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+input:checked + .slider { background: var(--primary); }
+input:checked + .slider:before { transform: translateX(20px); }
+
+.llm-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f0f4ff; border: 1px solid #c7d9f5; border-radius: var(--radius); margin-bottom: 16px; }
+.llm-label { font-size: 13px; }
+.llm-label strong { color: var(--primary); }
+.llm-label small { color: var(--muted); display: block; }
+.badge-llm { background: var(--badge-llm); color: #fff; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+
+.btn { padding: 10px 20px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .15s; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+.btn-secondary { background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+.btn-secondary:hover { background: #e8e8e8; }
+.btn-danger { background: #fce8e6; border: 1px solid #f28b82; color: #c5221f; }
+.btn-danger:hover { background: #f28b82; color: #fff; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+.output-box { background: #f8f9fa; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; font-family: monospace; font-size: 12px; word-break: break-all; line-height: 1.5; color: var(--text); min-height: 60px; white-space: pre-wrap; }
+.output-section { margin-top: 12px; }
+.output-section label { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .4px; }
+
+.copy-success { color: var(--success); font-size: 12px; margin-left: 8px; opacity: 0; transition: opacity .3s; }
+.copy-success.show { opacity: 1; }
+
+.spinner { display: none; width: 18px; height: 18px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; margin-left: 8px; }
+.spinner.active { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: center; justify-content: center; }
+.modal-backdrop.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius); padding: 24px; width: 420px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+.modal h2 { font-size: 16px; margin-bottom: 6px; }
+.modal p { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+.modal .field { margin-bottom: 14px; }
+.modal-warn { background: #fef3e2; border: 1px solid #fbbc04; border-radius: var(--radius); padding: 10px 12px; font-size: 12px; color: #7a4f00; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+.shared-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.shared-status.ok { color: var(--success); background: #e6f4ea; }
+.shared-status.err { color: var(--warning); background: #fce8e6; }
+.shared-status.loading { color: var(--muted); background: var(--bg); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px 10px; background: var(--bg); border-bottom: 2px solid var(--border); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.tag { display: inline-block; background: #e8f0fe; color: var(--primary); border-radius: 4px; padding: 2px 7px; font-size: 11px; margin: 2px 2px 2px 0; cursor: pointer; }
+.tag:hover { background: #c7d9f5; }
+.tag.exclude { background: #fce8e6; color: #c5221f; }
+.tag.sector { background: #e6f4ea; color: var(--success); }
+
+.empty-state { text-align: center; padding: 40px; color: var(--muted); }
+.empty-state p { font-size: 15px; }
+.empty-state small { font-size: 12px; }
+
+.history-entry { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.history-entry .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.history-entry .meta .provider { font-size: 11px; background: var(--bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 10px; color: var(--muted); }
+.history-entry .meta .date { font-size: 11px; color: var(--muted); }
+.history-entry .query-preview { font-family: monospace; font-size: 11px; background: var(--bg); padding: 8px; border-radius: 6px; word-break: break-all; margin-bottom: 8px; }
+.history-entry .kw-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+
+.zone-error { color: var(--warning); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔍 Sales Navigator Query Generator</h1>
+  <div class="header-right">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="generator" data-i18n="tab_generator">Générateur</button>
+      <button class="tab-btn" data-tab="learned" data-i18n="tab_learned">Base apprise</button>
+      <button class="tab-btn" data-tab="history" data-i18n="tab_history">Résultats LLM</button>
+    </div>
+    <button class="btn-lang" id="btn-lang">EN</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- GENERATOR TAB -->
+  <div id="tab-generator" class="tab-content active">
+
+    <div class="llm-row">
+      <div class="llm-label">
+        <strong data-i18n="llm_mode">Mode IA</strong>
+        <span class="badge-llm" data-i18n="llm_badge">optionnel</span>
+        <span id="shared-status" class="shared-status loading" style="display:none;margin-left:8px;"></span>
+        <small data-i18n="llm_mode_desc">Active la génération via LLM pour les zones inconnues et les cas non couverts</small>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="llm-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="search_params">Paramètres de recherche</h2>
+      <div class="form-grid">
+
+        <div class="field">
+          <label data-i18n="label_country">Pays</label>
+          <select id="sel-country">
+            <option value="" data-i18n="sel_default">-- Sélectionner --</option>
+            <option value="ch" data-i18n="country_ch">Suisse</option>
+            <option value="fr" data-i18n="country_fr">France</option>
+            <option value="be" data-i18n="country_be">Belgique</option>
+            <option value="de" data-i18n="country_de">Allemagne</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label data-i18n="label_lang">Langue</label>
+          <select id="sel-lang" disabled>
+            <option value="" data-i18n="sel_country_first">-- Sélectionner un pays d'abord --</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label data-i18n="label_type">Type de cible</label>
+          <select id="sel-type">
+            <option value="" data-i18n="sel_default">-- Sélectionner --</option>
+            <option value="agents" data-i18n="type_agents">Agents immobiliers</option>
+            <option value="dirigeants" data-i18n="type_dirigeants">Dirigeants d'agences</option>
+            <option value="cabinets" data-i18n="type_cabinets">Cabinets / Sociétés immobilières</option>
+            <option value="acquisition" data-i18n="type_acquisition">Acquisition / Investment</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label data-i18n="label_headcount">Taille d'entreprise</label>
+          <select id="sel-headcount" multiple size="4" style="height:auto;padding:4px;">
+            <option value="" data-i18n="all_sizes">Toutes tailles (défaut)</option>
+            <option value="A">Self-employed</option>
+            <option value="B">1–10</option>
+            <option value="C">11–50</option>
+            <option value="D">51–200</option>
+            <option value="E">201–500</option>
+            <option value="F">1 001–5 000</option>
+            <option value="G">5 001–10 000</option>
+            <option value="H">10 001+</option>
+          </select>
+          <small style="color:var(--muted);font-size:11px;" data-i18n="headcount_hint">Ctrl+clic pour sélection multiple. Aucune sélection = pas de filtre.</small>
+        </div>
+
+        <div class="field">
+          <label data-i18n="label_zone">Zone géographique</label>
+          <select id="sel-zone" disabled>
+            <option value="" data-i18n="sel_country_first">-- Sélectionner un pays d'abord --</option>
+          </select>
+          <div id="zone-custom-wrap" style="display:none; margin-top:6px;">
+            <input type="text" id="zone-custom" data-i18n-ph="zone_custom_placeholder">
+          </div>
+          <div id="zone-error" class="zone-error" style="display:none;"></div>
+        </div>
+
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <span data-i18n="toggle_exclude_label">Exclusion étendue des profils juniors</span>
+          <small>
+            <strong>ON</strong> → <span data-i18n="toggle_on_desc">46 termes : juniors, finance/crédit, banque, juridique, archi, compta, RH</span><br>
+            <strong>OFF</strong> → <span data-i18n="toggle_off_desc">minimal : Assistant, Junior, Stagiaire, Trainee, Intern, Praktikant, Stagista</span>
+          </small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-exclude" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:16px;">
+      <button class="btn btn-primary" id="btn-generate" style="display:flex;align-items:center;gap:6px;">
+        <span data-i18n="btn_generate">Générer la query</span>
+        <span class="spinner" id="spinner"></span>
+      </button>
+      <button class="btn btn-secondary" id="btn-reset-form" data-i18n="btn_reset">Réinitialiser</button>
+    </div>
+
+    <div class="card" id="output-card" style="display:none;">
+      <h2 data-i18n="result_title">Résultat</h2>
+
+      <div class="output-section">
+        <label data-i18n="output_query_label">Query (à coller dans Captain Data → /people/search?query=)</label>
+        <div class="output-box" id="out-query"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="copyOutput('out-query','copied-query')" data-i18n="btn_copy_query">Copier la query</button>
+          <span class="copy-success" id="copied-query" data-i18n="copied">✓ Copié !</span>
+        </div>
+      </div>
+
+      <div class="output-section" style="margin-top:16px;">
+        <label data-i18n="output_url_label">URL Sales Navigator (debug / test)</label>
+        <div class="output-box" id="out-url"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="copyOutput('out-url','copied-url')" data-i18n="btn_copy_url">Copier l'URL</button>
+          <span class="copy-success" id="copied-url" data-i18n="copied">✓ Copié !</span>
+          <button class="btn btn-secondary btn-sm" id="btn-open-url" data-i18n="btn_open_url">Ouvrir dans Sales Nav</button>
+        </div>
+      </div>
+
+      <div id="out-meta" style="margin-top:12px; font-size:12px; color:var(--muted);"></div>
+
+      <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">
+        <button class="btn btn-secondary btn-sm" onclick="exportContribution()" data-i18n="btn_contribute">Contribuer</button>
+        <span style="font-size:11px;color:var(--muted);margin-left:8px;" data-i18n="contribute_modal_desc">Copiez ce JSON et commitez-le dans le repo.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LEARNED TAB -->
+  <div id="tab-learned" class="tab-content">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <h2 style="margin:0;" data-i18n="learned_titles_h2">Titres appris par LLM</h2>
+        <div class="btn-row" style="margin:0;">
+          <button class="btn btn-secondary btn-sm" onclick="exportLearnedJSON()" data-i18n="btn_export">Exporter JSON</button>
+          <button class="btn btn-danger btn-sm" onclick="resetLearned()" data-i18n="btn_reset_all">Reset tout</button>
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px;" data-i18n="learned_hint">
+        Cliquez sur un terme pour le supprimer.
+      </p>
+      <div id="learned-titles-content"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="learned_keywords_h2">Keywords appris par contexte</h2>
+      <div id="learned-keywords-content"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="tab-history" class="tab-content">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <h2 style="margin:0;" data-i18n="history_h2">Queries générées par LLM</h2>
+        <button class="btn btn-danger btn-sm" onclick="clearHistory()" data-i18n="btn_clear_history">Effacer l'historique</button>
+      </div>
+      <div id="history-content"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Contribute Modal -->
+<div class="modal-backdrop" id="contribute-modal">
+  <div class="modal" style="max-width:640px;width:95vw;">
+    <h2 data-i18n="contribute_modal_title">Exporter ma contribution</h2>
+    <p data-i18n="contribute_modal_desc">Copiez ce JSON et commitez-le dans le repo (learned_data.json) via PR ou commit direct.</p>
+    <pre id="contribute-json" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:11px;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin-bottom:0;"></pre>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="document.getElementById('contribute-modal').classList.remove('open')" data-i18n="btn_close">Fermer</button>
+      <button class="btn btn-primary" id="btn-copy-contribute" onclick="copyContributeJSON()" data-i18n="contribute_copy">Copier le JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- LLM Modal -->
+<div class="modal-backdrop" id="llm-modal">
+  <div class="modal">
+    <h2 data-i18n="modal_title">Configurer le Mode IA</h2>
+    <p data-i18n-html="modal_desc">Choisissez votre provider et entrez votre clé API. La clé n'est <strong>jamais stockée</strong> — elle est oubliée à la fermeture.</p>
+    <div class="modal-warn" data-i18n="modal_warn">⚠️ La clé API est transmise directement depuis votre navigateur vers l'API du provider. Elle n'est pas sauvegardée localement.</div>
+    <div class="field">
+      <label data-i18n="label_provider">Provider</label>
+      <select id="llm-provider">
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI (GPT-4o)</option>
+        <option value="mistral">Mistral AI</option>
+      </select>
+    </div>
+    <div class="field">
+      <label data-i18n="label_apikey">Clé API</label>
+      <input type="password" id="llm-apikey" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div id="llm-modal-error" style="color:var(--warning);font-size:12px;margin-top:8px;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="llm-modal-cancel" data-i18n="btn_cancel">Annuler</button>
+      <button class="btn btn-primary" id="llm-modal-confirm" data-i18n="btn_activate">Activer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// I18N
+// ============================================================
+
+const TRANSLATIONS = {
+  fr: {
+    tab_generator: "Générateur",
+    tab_learned: "Base apprise",
+    tab_history: "Résultats LLM",
+    llm_mode: "Mode IA",
+    llm_badge: "optionnel",
+    llm_mode_desc: "Active la génération via LLM pour les zones inconnues et les cas non couverts",
+    search_params: "Paramètres de recherche",
+    label_country: "Pays",
+    label_lang: "Langue",
+    label_type: "Type de cible",
+    label_headcount: "Taille d'entreprise",
+    label_zone: "Zone géographique",
+    sel_default: "-- Sélectionner --",
+    sel_country_first: "-- Sélectionner un pays d'abord --",
+    all_sizes: "Toutes tailles (défaut)",
+    headcount_hint: "Ctrl+clic pour sélection multiple. Aucune sélection = pas de filtre.",
+    zone_custom_placeholder: "ex: Vaud, Île-de-France, PACA...",
+    country_ch: "Suisse",
+    country_fr: "France",
+    country_be: "Belgique",
+    country_de: "Allemagne",
+    type_agents: "Agents immobiliers",
+    type_dirigeants: "Dirigeants d'agences",
+    type_cabinets: "Cabinets / Sociétés immobilières",
+    type_acquisition: "Acquisition / Investissement",
+    toggle_exclude_label: "Exclusion étendue des profils juniors",
+    toggle_on_desc: "46 termes : juniors, finance/crédit, banque, juridique, archi, compta, RH",
+    toggle_off_desc: "minimal : Assistant, Junior, Stagiaire, Trainee, Intern, Praktikant, Stagista",
+    btn_generate: "Générer la query",
+    btn_reset: "Réinitialiser",
+    result_title: "Résultat",
+    output_query_label: "Query (à coller dans Captain Data → /people/search?query=)",
+    output_url_label: "URL Sales Navigator (debug / test)",
+    btn_copy_query: "Copier la query",
+    btn_copy_url: "Copier l'URL",
+    btn_open_url: "Ouvrir dans Sales Nav",
+    copied: "✓ Copié !",
+    learned_titles_h2: "Titres appris par LLM",
+    btn_export: "Exporter JSON",
+    btn_reset_all: "Reset tout",
+    learned_hint: "Cliquez sur un terme pour le supprimer. Bleu = inclus, Vert = secteur, Rouge = exclus.",
+    learned_keywords_h2: "Keywords appris par contexte",
+    history_h2: "Queries générées par LLM",
+    btn_clear_history: "Effacer l'historique",
+    btn_reuse: "Réutiliser cette query",
+    empty_titles: "Aucun titre appris",
+    empty_titles_sub: "Générez des queries en Mode IA pour enrichir la base.",
+    empty_keywords: "Aucun keyword appris",
+    empty_history: "Aucun résultat LLM",
+    empty_history_sub: "Activez le Mode IA et générez des queries pour les voir ici.",
+    modal_title: "Configurer le Mode IA",
+    modal_desc: "Choisissez votre provider et entrez votre clé API. La clé n'est <strong>jamais stockée</strong> — elle est oubliée à la fermeture.",
+    modal_warn: "⚠️ La clé API est transmise directement depuis votre navigateur vers l'API du provider. Elle n'est pas sauvegardée localement.",
+    label_provider: "Provider",
+    label_apikey: "Clé API",
+    btn_cancel: "Annuler",
+    btn_activate: "Activer",
+    err_fill_fields: "Veuillez sélectionner un pays, une langue et un type de cible.",
+    err_fill_zone: "Veuillez saisir le nom de la zone.",
+    err_zone_unknown: "Zone non reconnue — activez le Mode IA pour générer cette query.",
+    err_no_apikey: "Veuillez entrer une clé API.",
+    confirm_reset: "Supprimer toute la base apprise (titres + keywords + zones) ? Les données hardcodées sont conservées.",
+    confirm_clear_history: "Effacer tout l'historique des résultats LLM ?",
+    zone_all_country: "Tout le pays",
+    zone_custom: "Autre zone…",
+    lang_fr: "Français", lang_de: "Allemand", lang_it: "Italien", lang_en: "Anglais", lang_nl: "Néerlandais",
+    meta_static: "Mode statique",
+    meta_size: "taille",
+    meta_resolved: "Zone résolue depuis la base apprise",
+    meta_reused: "Query réutilisée depuis l'historique",
+    th_key: "Clé", th_terms: "Termes", th_context: "Clé contexte", th_keywords: "Keywords",
+    click_remove: "Cliquer pour supprimer",
+    btn_contribute: "Contribuer",
+    contribute_modal_title: "Exporter ma contribution",
+    contribute_modal_desc: "Copiez ce JSON et commitez-le dans le repo (learned_data.json) via PR ou commit direct.",
+    contribute_copy: "Copier le JSON",
+    btn_close: "Fermer",
+    shared_loading: "Chargement base partagée…",
+    shared_loaded: "Base partagée chargée ✓",
+    shared_error: "Base partagée inaccessible"
+  },
+  en: {
+    tab_generator: "Generator",
+    tab_learned: "Learned Base",
+    tab_history: "LLM Results",
+    llm_mode: "AI Mode",
+    llm_badge: "optional",
+    llm_mode_desc: "Enables LLM generation for unknown zones and cases not covered by templates",
+    search_params: "Search Parameters",
+    label_country: "Country",
+    label_lang: "Language",
+    label_type: "Target Type",
+    label_headcount: "Company Size",
+    label_zone: "Geographic Zone",
+    sel_default: "-- Select --",
+    sel_country_first: "-- Select a country first --",
+    all_sizes: "All sizes (default)",
+    headcount_hint: "Ctrl+click for multi-select. No selection = no filter.",
+    zone_custom_placeholder: "e.g. Vaud, Île-de-France, PACA...",
+    country_ch: "Switzerland",
+    country_fr: "France",
+    country_be: "Belgium",
+    country_de: "Germany",
+    type_agents: "Real Estate Agents",
+    type_dirigeants: "Agency Executives",
+    type_cabinets: "Real Estate Firms / Companies",
+    type_acquisition: "Acquisition / Investment",
+    toggle_exclude_label: "Extended junior profile exclusion",
+    toggle_on_desc: "46 terms: juniors, finance/credit, banking, legal, architecture, accounting, HR",
+    toggle_off_desc: "minimal: Assistant, Junior, Stagiaire, Trainee, Intern, Praktikant, Stagista",
+    btn_generate: "Generate query",
+    btn_reset: "Reset",
+    result_title: "Result",
+    output_query_label: "Query (paste into Captain Data → /people/search?query=)",
+    output_url_label: "Sales Navigator URL (debug / test)",
+    btn_copy_query: "Copy query",
+    btn_copy_url: "Copy URL",
+    btn_open_url: "Open in Sales Nav",
+    copied: "✓ Copied!",
+    learned_titles_h2: "Titles learned by LLM",
+    btn_export: "Export JSON",
+    btn_reset_all: "Reset all",
+    learned_hint: "Click a term to remove it. Blue = include, Green = sector, Red = exclude.",
+    learned_keywords_h2: "Keywords learned by context",
+    history_h2: "Queries generated by LLM",
+    btn_clear_history: "Clear history",
+    btn_reuse: "Reuse this query",
+    empty_titles: "No learned titles",
+    empty_titles_sub: "Generate queries in AI Mode to enrich the base.",
+    empty_keywords: "No learned keywords",
+    empty_history: "No LLM results",
+    empty_history_sub: "Enable AI Mode and generate queries to see them here.",
+    modal_title: "Configure AI Mode",
+    modal_desc: "Choose your provider and enter your API key. The key is <strong>never stored</strong> — it is forgotten when the page closes.",
+    modal_warn: "⚠️ The API key is sent directly from your browser to the provider's API. It is not saved locally.",
+    label_provider: "Provider",
+    label_apikey: "API Key",
+    btn_cancel: "Cancel",
+    btn_activate: "Activate",
+    err_fill_fields: "Please select a country, language and target type.",
+    err_fill_zone: "Please enter the zone name.",
+    err_zone_unknown: "Unknown zone — enable AI Mode to generate this query.",
+    err_no_apikey: "Please enter an API key.",
+    confirm_reset: "Delete all learned data (titles + keywords + zones)? Hardcoded data will be preserved.",
+    confirm_clear_history: "Clear all LLM results history?",
+    zone_all_country: "Entire country",
+    zone_custom: "Other zone…",
+    lang_fr: "French", lang_de: "German", lang_it: "Italian", lang_en: "English", lang_nl: "Dutch",
+    meta_static: "Static mode",
+    meta_size: "size",
+    meta_resolved: "Zone resolved from learned base",
+    meta_reused: "Query reused from history",
+    th_key: "Key", th_terms: "Terms", th_context: "Context key", th_keywords: "Keywords",
+    click_remove: "Click to remove",
+    btn_contribute: "Contribute",
+    contribute_modal_title: "Export my contribution",
+    contribute_modal_desc: "Copy this JSON and commit it to the repo (learned_data.json) via PR or direct commit.",
+    contribute_copy: "Copy JSON",
+    btn_close: "Close",
+    shared_loading: "Loading shared data…",
+    shared_loaded: "Shared data loaded ✓",
+    shared_error: "Shared data unavailable"
+  }
+}
+
+let currentLang = localStorage.getItem("salesnav_lang") || "fr"
+
+function T(key) {
+  return TRANSLATIONS[currentLang]?.[key] ?? TRANSLATIONS["fr"][key] ?? key
+}
+
+function applyLang() {
+  document.documentElement.lang = currentLang
+  document.getElementById("btn-lang").textContent = currentLang === "fr" ? "EN" : "FR"
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = T(el.dataset.i18n)
+  })
+  document.querySelectorAll("[data-i18n-html]").forEach(el => {
+    el.innerHTML = T(el.dataset.i18nHtml)
+  })
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+    el.placeholder = T(el.dataset.i18nPh)
+  })
+  // Update dynamic selects if already populated
+  const langSel = document.getElementById("sel-lang")
+  const zoneSel = document.getElementById("sel-zone")
+  const country = document.getElementById("sel-country").value
+  if (country && !langSel.disabled) {
+    const savedLang = langSel.value
+    populateLangSelect(country, savedLang)
+  }
+  if (country && !zoneSel.disabled) {
+    const savedZone = zoneSel.value
+    populateZoneSelect(country, savedZone)
+  }
+}
+
+document.getElementById("btn-lang").addEventListener("click", () => {
+  currentLang = currentLang === "fr" ? "en" : "fr"
+  localStorage.setItem("salesnav_lang", currentLang)
+  applyLang()
+})
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+const GEO_IDS = {
+  ch: "106693272", fr: "105015875", be: "100565514", de: "101282230",
+  "ch:geneve": "100878084", "ch:zurich": "100878351"
+}
+
+const LANG_KEYS_BY_COUNTRY = {
+  ch: ["fr","de","it","en"],
+  fr: ["fr"],
+  be: ["fr","nl"],
+  de: ["de"]
+}
+
+const ZONE_DEFS = {
+  ch: [
+    { labelKey: "zone_all_country", id: "106693272", key: null },
+    { label: "Genève / Geneva", id: "100878084", key: "geneve" },
+    { label: "Zürich", id: "100878351", key: "zurich" },
+    { labelKey: "zone_custom", id: null, key: "__custom__" }
+  ],
+  fr: [
+    { labelKey: "zone_all_country", id: "105015875", key: null },
+    { labelKey: "zone_custom", id: null, key: "__custom__" }
+  ],
+  be: [
+    { labelKey: "zone_all_country", id: "100565514", key: null },
+    { labelKey: "zone_custom", id: null, key: "__custom__" }
+  ],
+  de: [
+    { labelKey: "zone_all_country", id: "101282230", key: null },
+    { labelKey: "zone_custom", id: null, key: "__custom__" }
+  ]
+}
+
+// Titres SANS exclusion — l'exclusion est gérée séparément
+const HARDCODED_TITLES = {
+  fr: {
+    agents:     `("Agent" OR "Conseiller" OR "Consultant" OR "Courtier" OR "Négociateur" OR "Agent Acheteur" OR "Agent Vendeur" OR "Agent Acquisition") AND ("Immobilier" OR "Real Estate" OR "Immobilière" OR "Foncier")`,
+    dirigeants: `("Directeur" OR "Director" OR "Gérant" OR "Manager" OR "Responsable" OR "Chef" OR "Head" OR "Associé" OR "Partner" OR "Fondateur" OR "Founder" OR "Principal" OR "Senior") AND ("Agence" OR "Agency" OR "Bureau" OR "Office" OR "Cabinet" OR "Société" OR "Immobilier" OR "Real Estate" OR "Immobilière" OR "Foncier" OR "Gérance")`,
+    cabinets:   `("Directeur" OR "Gérant" OR "Fondateur" OR "Associé" OR "Agent" OR "Conseiller" OR "Négociateur" OR "Courtier") AND ("Cabinet" OR "Agence" OR "Société" OR "Bureau" OR "Immobilier" OR "Real Estate" OR "Foncier")`,
+    acquisition: `(("Acquisition" OR "Acquisitions") AND ("Immobilier" OR "Foncier" OR "Patrimoine" OR "Investissement")) OR ("Responsable Acquisition" OR "Directeur Acquisition" OR "Chargé d'Acquisition" OR "Investment Manager" OR "Portfolio Manager" OR "Directeur Développement")`
+  },
+  de: {
+    agents:     `("Makler" OR "Immobilienmakler" OR "Agent" OR "Berater" OR "Vermittler" OR "Immobilienberater" OR "Käufermakler" OR "Verkäufermakler" OR "Akquisitionsmakler") AND ("Immobilien" OR "Real Estate" OR "Liegenschaft" OR "Immobilienbüro")`,
+    dirigeants: `("Geschäftsführer" OR "Direktor" OR "Director" OR "Leiter" OR "Head" OR "Manager" OR "Inhaber" OR "Owner" OR "Partner" OR "Gründer" OR "Founder") AND ("Immobilien" OR "Real Estate" OR "Immobilienmakler" OR "Liegenschaft" OR "Immobilienbüro")`,
+    cabinets:   `("Geschäftsführer" OR "Inhaber" OR "Gründer" OR "Makler" OR "Berater") AND ("Immobilienbüro" OR "Maklerbüro" OR "Immobilien" OR "Real Estate" OR "Liegenschaft")`,
+    acquisition: `(("Akquisition" OR "Ankauf") AND ("Immobilien" OR "Liegenschaft" OR "Investition" OR "Vermögen")) OR ("Ankaufsmanager" OR "Investmentmanager" OR "Portfoliomanager" OR "Entwicklungsleiter" OR "Leiter Akquisition")`
+  },
+  it: {
+    agents:     `("Agente" OR "Consulente" OR "Mediatore" OR "Intermediario" OR "Broker" OR "Agente Acquirente" OR "Agente Venditore") AND ("Immobiliare" OR "Real Estate" OR "Agenzia" OR "Immobili")`,
+    dirigeants: `("Direttore" OR "Director" OR "Responsabile" OR "Manager" OR "Capo" OR "Head" OR "Titolare" OR "Owner" OR "Partner" OR "Socio" OR "Fondatore" OR "Founder") AND ("Immobiliare" OR "Real Estate" OR "Agenzia" OR "Immobili" OR "Patrimonio")`,
+    cabinets:   `("Direttore" OR "Titolare" OR "Fondatore" OR "Agente" OR "Mediatore") AND ("Agenzia Immobiliare" OR "Studio Immobiliare" OR "Immobiliare" OR "Real Estate")`,
+    acquisition: `(("Acquisizione" OR "Acquisizioni") AND ("Immobiliare" OR "Patrimonio" OR "Investimento" OR "Asset")) OR ("Responsabile Acquisizioni" OR "Investment Manager" OR "Portfolio Manager" OR "Direttore Sviluppo" OR "Gestore Investimenti")`
+  },
+  en: {
+    agents:     `("Real Estate Agent" OR "Property Agent" OR "Estate Agent" OR "Real Estate Broker" OR "Property Broker" OR "Real Estate Consultant" OR "Property Consultant" OR "Real Estate Advisor" OR "Property Advisor" OR "Realtor" OR "Buyer's Agent" OR "Buyers Agent" OR "Buyer Agent" OR "Acquisition Agent" OR "Property Buyer Agent")`,
+    dirigeants: `("Director" OR "Manager" OR "Head" OR "Owner" OR "Partner" OR "Founder" OR "Principal" OR "Senior") AND ("Real Estate" OR "Property" OR "Agency" OR "Estate Agent" OR "Brokerage")`,
+    cabinets:   `("Director" OR "Owner" OR "Founder" OR "Agent" OR "Consultant") AND ("Real Estate Agency" OR "Property Agency" OR "Brokerage" OR "Real Estate" OR "Property")`,
+    acquisition: `(("Acquisition" OR "Acquisitions") AND ("Property" OR "Real Estate" OR "Asset" OR "Investment")) OR ("Property Acquisition" OR "Real Estate Acquisition" OR "Asset Acquisition" OR "Investment Manager" OR "Portfolio Manager" OR "Development Manager")`
+  },
+  nl: {
+    agents:     `("Makelaar" OR "Agent" OR "Consultant" OR "Adviseur" OR "Bemiddelaar") AND ("Vastgoed" OR "Immobiliën" OR "Real Estate" OR "Eigendom")`,
+    dirigeants: `("Directeur" OR "Manager" OR "Hoofd" OR "Eigenaar" OR "Partner" OR "Oprichter" OR "Founder") AND ("Vastgoed" OR "Immobiliën" OR "Real Estate" OR "Makelaarskantoor" OR "Vastgoedkantoor")`,
+    cabinets:   `("Directeur" OR "Eigenaar" OR "Oprichter" OR "Makelaar" OR "Adviseur") AND ("Makelaarskantoor" OR "Vastgoedkantoor" OR "Vastgoed" OR "Real Estate")`,
+    acquisition: `(("Acquisitie" OR "Aankoop") AND ("Vastgoed" OR "Eigendom" OR "Investering" OR "Asset")) OR ("Acquisitiemanager" OR "Investment Manager" OR "Portfolio Manager" OR "Ontwikkelingsmanager")`
+  }
+}
+
+const EXCLUSIONS = {
+  minimal: `NOT (Assistant OR Stagiaire OR Junior OR Trainee OR Intern OR Praktikant OR Stagista)`,
+  extended: {
+    fr: `NOT (Assistant OR Stagiaire OR Junior OR Trainee OR Intern OR "Entry Level" OR Bénévole OR Praktikant OR Stagista OR Koordinator OR "Mortgage Broker" OR Hypothécaire OR "Credit Counselor" OR "Loan Officer" OR Banker OR Banquier OR Insurance OR Assureur OR "Asset Manager" OR "Portfolio Manager" OR "Wealth Manager" OR "Gestionnaire de patrimoine" OR Notaire OR Notaio OR Notar OR Notary OR Notaris OR Avocat OR Attorney OR Lawyer OR Rechtsanwalt OR Architect OR Architecte OR Architekt OR Contractor OR "Interior Designer" OR Accountant OR Comptable OR "Tax Advisor" OR Steuerberater OR Auditeur OR Recruiter OR Recruteur OR "HR Manager" OR "Talent Acquisition" OR Headhunter OR Secrétaire OR Réceptionniste OR "Assistant Administratif" OR Paralégal OR "Assistant Juridique" OR "Responsable Conformité" OR "Gestionnaire des Risques" OR "Analyste de Données" OR "Analyste Financier" OR "Analyste Métier" OR "Analyste Investissement" OR "Ingénieur Civil" OR Géomètre OR Urbaniste OR "Chef de Projet" OR "Responsable Marketing" OR "Assistant Commercial" OR "Service Client")`,
+    de: `NOT (Praktikant OR Auszubildender OR Junior OR Trainee OR Assistent OR Hypothekenmakler OR Kreditberater OR Banker OR Versicherung OR Versicherungsmakler OR Vermögensverwalter OR Notar OR Rechtsanwalt OR Anwalt OR Architekt OR Bauunternehmer OR Generalunternehmer OR Innenarchitekt OR Buchhalter OR Steuerberater OR Wirtschaftsprüfer OR Personalvermittler OR Headhunter OR "HR Manager" OR Sekretärin OR Rezeptionist OR Büroleiter OR Verwaltungsassistent OR Compliance-Beauftragter OR Risikoanalyst OR Datenanalyst OR Finanzanalyst OR Bauingenieur OR Stadtplaner OR Projektleiter OR Marketingleiter OR Kundendienstmitarbeiter)`,
+    it: `NOT (Stagista OR Tirocinante OR Junior OR Trainee OR Assistente OR Coordinatore OR "Mediatore creditizio" OR "Consulente mutui" OR Banchiere OR Assicuratore OR "Gestore patrimoniale" OR Notaio OR Avvocato OR Legale OR Architetto OR Appaltatore OR "Designer d'interni" OR Contabile OR "Consulente fiscale" OR Revisore OR Recruiter OR "Responsabile HR" OR Headhunter OR Segretaria OR Receptionist OR "Responsabile Ufficio" OR "Assistente Amministrativo" OR "Responsabile Conformità" OR "Analista Dati" OR "Analista Finanziario" OR "Ingegnere Civile" OR "Pianificatore Urbano" OR "Project Manager" OR "Responsabile Marketing" OR "Assistente Vendite" OR "Servizio Clienti")`,
+    en: `NOT (Assistant OR Junior OR Coordinator OR Trainee OR Intern OR "Entry Level" OR "Mortgage Broker" OR "Loan Officer" OR "Credit Advisor" OR Banker OR "Insurance Broker" OR "Asset Manager" OR "Wealth Manager" OR Notary OR Attorney OR Lawyer OR Solicitor OR Architect OR Contractor OR "Interior Designer" OR Accountant OR "Tax Advisor" OR Auditor OR Recruiter OR "HR Manager" OR "Talent Acquisition" OR Headhunter OR Secretary OR Receptionist OR "Office Manager" OR "Administrative Assistant" OR Paralegal OR "Legal Assistant" OR "Compliance Officer" OR "Risk Manager" OR "Data Analyst" OR "Financial Analyst" OR "Business Analyst" OR "Investment Analyst" OR "Portfolio Analyst" OR "Property Manager Assistant" OR "Facility Manager" OR "Maintenance Manager" OR "Construction Manager" OR "Site Manager" OR "Civil Engineer" OR Surveyor OR "Quantity Surveyor" OR "Urban Planner" OR "Marketing Manager" OR "Sales Assistant" OR "Customer Service Representative" OR "Call Center Agent")`,
+    nl: `NOT (Stagiair OR Junior OR Trainee OR Intern OR "Entry Level" OR Assistent OR Coördinator OR Hypotheekmakelaar OR Kredietadviseur OR Bankier OR Verzekeraar OR Verzekeringsmakelaar OR Vermogensbeheerder OR Notaris OR Advocaat OR Jurist OR Architect OR Aannemer OR Interieurontwerper OR Accountant OR Belastingadviseur OR Auditor OR Recruiter OR "HR Manager" OR Headhunter OR Secretaresse OR Receptionist OR Kantoorbeheerder OR Administratief Medewerker OR Compliance-officer OR Risicoanalyst OR Gegevensanalist OR Financieel Analist OR Bouwingenieur OR Stadsplanner OR Projectmanager OR Marketingmanager OR Verkoopmedewerker OR Klantenservicemedewerker)`
+  }
+}
+
+const HARDCODED_KEYWORDS = {
+  "ch:fr":        `("MLS" OR "CRM immobilier" OR "REDS" OR "Immostreet" OR "Century 21" OR "Coldwell Banker" OR "RE/MAX" OR "Wüest Partner" OR "courtier" OR "négociation" OR "évaluation" OR "expertise foncière" OR "rendement locatif" OR "plus-value" OR "hypothèque" OR "financement" OR "CECB" OR "certificat énergétique" OR "copropriété" OR "PPE" OR "cadastre" OR "notaire" OR "acte authentique" OR "compromis" OR "mandat exclusif")`,
+  "ch:fr:geneve": `("Permis G" OR "Autorisation CGCI" OR "USPI" OR "SVIT" OR "Chambre Genevoise" OR "transaction immobilière" OR "évaluation immobilière" OR "expertise immobilière" OR "million CHF" OR "millions CHF" OR "Genève immobilier" OR "marché genevois")`,
+  "ch:de":        `("Makler" OR "Bewertung" OR "Schätzung" OR "Liegenschaftshandel" OR "Vermietung" OR "Verwaltung" OR "Hypothek" OR "Finanzierung" OR "GEAK" OR "Energieausweis" OR "Stockwerkeigentum" OR "WEG" OR "Kataster" OR "Notar" OR "Kaufvertrag" OR "Exklusivmandat" OR "SVIT" OR "Liegenschaft")`,
+  "ch:de:zurich": `("Zürcher Immobilienmarkt" OR "Zürich Immobilien" OR "SVIT" OR "Liegenschaft" OR "Stockwerkeigentum" OR "Hypothek")`,
+  "ch:it":        `("agenti" OR "mediatore" OR "intermediario" OR "consulente" OR "valutazione" OR "perizia" OR "gestione" OR "amministrazione" OR "compravendita" OR "locazione" OR "affitto" OR "mutuo" OR "finanziamento" OR "APE" OR "certificato energetico" OR "condominio" OR "comproprietà" OR "catasto" OR "notaio" OR "compromesso" OR "mandato esclusivo")`,
+  "ch:en":        `("real estate" OR "property" OR "MLS" OR "valuation" OR "appraisal" OR "mortgage" OR "investment" OR "rental yield" OR "capital gain" OR "exclusive mandate" OR "land registry" OR "homebuyer" OR "homeseller" OR "deal sourcing" OR "listing presentation" OR "buyer representation" OR "seller lead" OR "housing market" OR "property search" OR "new development" OR "pre-construction" OR "realty services" OR "property exposure" OR "real estate pipeline" OR "property investment" OR "asset acquisition" OR "due diligence" OR "property valuation" OR "investment analysis" OR "portfolio management" OR "underwriting" OR "RICS" OR "chartered surveyor" OR "property finance" OR "real estate finance")`,
+  "fr:fr":        `("FNAIM" OR "CENTURY 21" OR "Orpi" OR "Laforêt" OR "Guy Hoquet" OR "ERA Immobilier" OR "Loi Carrez" OR "DPE" OR "diagnostic" OR "mandat" OR "estimation" OR "négociation" OR "compromis" OR "acte authentique" OR "notaire" OR "copropriété" OR "hypothèque" OR "PTZ" OR "défiscalisation" OR "Pinel" OR "syndic")`,
+  "be:fr":        `("IPI" OR "CIB" OR "SFI" OR "notaire" OR "compromis" OR "acte authentique" OR "estimation" OR "évaluation" OR "mandat" OR "copropriété" OR "hypothèque" OR "certificat PEB" OR "vente publique" OR "immobilier belge")`,
+  "be:nl":        `("Vastgoedmakelaar" OR "makelaar" OR "notaris" OR "CIB" OR "EPC" OR "energieprestatiecertificaat" OR "appartement" OR "woning" OR "vastgoed" OR "eigendom" OR "verhuur" OR "aankoop" OR "hypotheek" OR "compromis" OR "authentieke akte")`,
+  "de:de":        `("Immobilienmakler" OR "Bewertung" OR "Gutachten" OR "Vermarktung" OR "Vermietung" OR "Verwaltung" OR "Hypothek" OR "Finanzierung" OR "EnEV" OR "Energieausweis" OR "WEG" OR "Grundbuch" OR "Notar" OR "Kaufvertrag" OR "Alleinauftrag" OR "IVD" OR "Liegenschaft")`
+}
+
+// ============================================================
+// STATE
+// ============================================================
+
+let llmMode = false
+let llmProvider = null
+let llmApiKey = null  // never persisted
+
+// ============================================================
+// UTILS
+// ============================================================
+
+function getLearnedGeoIds() { try { return JSON.parse(localStorage.getItem("salesnav_geo_ids") || "{}") } catch { return {} } }
+function getLearnedTitles() { try { return JSON.parse(localStorage.getItem("salesnav_titles") || "{}") } catch { return {} } }
+function getLearnedKeywords() { try { return JSON.parse(localStorage.getItem("salesnav_keywords") || "{}") } catch { return {} } }
+function getHistory() { try { return JSON.parse(localStorage.getItem("salesnav_results_history") || "[]") } catch { return [] } }
+
+function storeGeoId(geoName, geoId, confidence) {
+  const learned = getLearnedGeoIds()
+  if (learned[geoName]?.confidence === "high" && confidence === "low") return
+  learned[geoName] = { id: geoId, confidence, source: "llm", timestamp: Date.now() }
+  localStorage.setItem("salesnav_geo_ids", JSON.stringify(learned))
+}
+
+function mergeToTemplates(llmResponse) {
+  if (!llmResponse) return
+  const titles = getLearnedTitles()
+  const key = llmResponse.template_key
+  if (key) {
+    if (!titles[key]) titles[key] = { include: [], sector: [], exclude: [] }
+    ;(llmResponse.title_includes || []).forEach(t => { if (!titles[key].include.includes(t)) titles[key].include.push(t) })
+    ;(llmResponse.title_sector || []).forEach(t => { if (!titles[key].sector.includes(t)) titles[key].sector.push(t) })
+    ;(llmResponse.title_excludes || []).forEach(t => { if (!titles[key].exclude.includes(t)) titles[key].exclude.push(t) })
+    localStorage.setItem("salesnav_titles", JSON.stringify(titles))
+  }
+  const kw = getLearnedKeywords()
+  const kwKey = llmResponse.keywords_key
+  if (kwKey) {
+    if (!kw[kwKey]) kw[kwKey] = []
+    ;(llmResponse.keywords_used || []).forEach(k => { if (!kw[kwKey].includes(k)) kw[kwKey].push(k) })
+    localStorage.setItem("salesnav_keywords", JSON.stringify(kw))
+  }
+}
+
+function saveToHistory(entry) {
+  const history = getHistory()
+  history.unshift(entry)
+  if (history.length > 100) history.length = 100
+  localStorage.setItem("salesnav_results_history", JSON.stringify(history))
+}
+
+function resolveGeoId(country, zoneKey, customText) {
+  if (!zoneKey && !customText) return { id: GEO_IDS[country], confidence: "high", known: true }
+  if (zoneKey && zoneKey !== "__custom__") {
+    const hcKey = `${country}:${zoneKey}`
+    if (GEO_IDS[hcKey]) return { id: GEO_IDS[hcKey], confidence: "high", known: true }
+  }
+  if (customText) {
+    const normalized = customText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-")
+    const learned = getLearnedGeoIds()
+    if (learned[normalized]) return { ...learned[normalized], known: true, normalized }
+  }
+  return { id: null, known: false, normalized: customText?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-") }
+}
+
+function buildTitleString(lang, type, excludeJuniors) {
+  const base = HARDCODED_TITLES[lang]?.[type] || HARDCODED_TITLES["fr"][type] || ""
+  const excl = excludeJuniors
+    ? (EXCLUSIONS.extended[lang] || EXCLUSIONS.extended["en"])
+    : EXCLUSIONS.minimal
+  return `${base} ${excl}`
+}
+
+function buildKeywords(country, lang, zoneKey) {
+  const key = zoneKey ? `${country}:${lang}:${zoneKey}` : `${country}:${lang}`
+  const fallbackKey = `${country}:${lang}`
+  const hcZone = HARDCODED_KEYWORDS[key] || null
+  const hcBase = HARDCODED_KEYWORDS[fallbackKey] || null
+  const learnedKw = getLearnedKeywords()
+  const learnedZone = learnedKw[key] || []
+  const learnedBase = learnedKw[fallbackKey] || []
+  if (hcZone) {
+    if (!learnedZone.length) return hcZone
+    return hcZone.replace(/\)$/, ` OR ${learnedZone.map(k => `"${k}"`).join(" OR ")})`)
+  }
+  if (hcBase) {
+    if (!learnedBase.length) return hcBase
+    return hcBase.replace(/\)$/, ` OR ${learnedBase.map(k => `"${k}"`).join(" OR ")})`)
+  }
+  return `("immobilier" OR "real estate")`
+}
+
+const HEADCOUNT_LABELS = { A:"Self-employed", B:"1-10", C:"11-50", D:"51-200", E:"201-500", F:"1001-5000", G:"5001-10000", H:"10001+" }
+
+function buildQuery(geoId, lang, type, excludeJuniors, country, zoneKey, headcounts) {
+  const title = buildTitleString(lang, type, excludeJuniors)
+  const kw = buildKeywords(country, lang, zoneKey)
+  let filters = ""
+  if (headcounts && headcounts.length) {
+    const hcValues = headcounts.map(id => `(id:${id},text:${HEADCOUNT_LABELS[id]},selectionType:INCLUDED)`).join(",")
+    filters += `(type:COMPANY_HEADCOUNT,values:List(${hcValues})),`
+  }
+  filters += `(type:REGION,values:List((id:${geoId},text:${geoId},selectionType:INCLUDED))),(type:CURRENT_TITLE,values:List((text:${title},selectionType:INCLUDED)))`
+  return `(spellCorrectionEnabled:true,filters:List(${filters}),keywords:${kw})`
+}
+
+function buildSalesNavUrl(query) {
+  return `https://www.linkedin.com/sales/search/people?query=${encodeURIComponent(query)}`
+}
+
+// ============================================================
+// LLM API
+// ============================================================
+
+const SYSTEM_PROMPT = `Tu es un expert en LinkedIn Sales Navigator pour l'immobilier.
+Tu génères des query strings Sales Navigator au format exact suivant :
+
+(spellCorrectionEnabled:true,filters:List((type:REGION,values:List((id:{GEO_ID},text:{GEO_ID},selectionType:INCLUDED))),(type:CURRENT_TITLE,values:List((text:{BOOLEAN_STRING},selectionType:INCLUDED)))),keywords:{KEYWORDS_STRING})
+
+Règles :
+- REGION text: répète toujours l'ID numérique, jamais le nom
+- CURRENT_TITLE : Boolean complexe dans un seul champ text: avec AND / OR / NOT
+- NOT inclut toujours : Junior, Stagiaire/Praktikant/Stagista selon la langue, Trainee, Intern, "Entry Level"
+- keywords : termes métier spécifiques au pays ET à la langue (jamais mélanger FR et DE)
+- IDs géo disponibles : Suisse=106693272, France=105015875, Genève=100878084, Zürich=100878351, Belgique=100565514, Allemagne=101282230
+
+Si la zone demandée n'est pas dans la liste des IDs connus, tente d'estimer l'ID LinkedIn.
+Pattern cantons suisses : 100878XXX — Pattern régions françaises : 10XXXXXXX
+Renvoie : "geo_id", "geo_confidence": "high|low", "geo_name": nom normalisé minuscules sans accents.
+
+Réponds UNIQUEMENT avec un JSON (pas de markdown) :
+{"query":"...","keywords_used":[...],"geo_id":"...","geo_confidence":"high|low","geo_name":"...","lang":"fr|de|it|en|nl","title_includes":[...],"title_sector":[...],"title_excludes":[...],"template_key":"fr:agents","keywords_key":"ch:fr"}`
+
+async function callLLM(userMessage) {
+  const provider = llmProvider
+  const apiKey = llmApiKey
+  if (provider === "anthropic") {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model: "claude-opus-4-5", max_tokens: 1000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: userMessage }] })
+    })
+    if (!resp.ok) throw new Error(`Anthropic ${resp.status}: ${await resp.text()}`)
+    return (await resp.json()).content[0].text
+  }
+  if (provider === "openai") {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+      body: JSON.stringify({ model: "gpt-4o", messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: userMessage }] })
+    })
+    if (!resp.ok) throw new Error(`OpenAI ${resp.status}: ${await resp.text()}`)
+    return (await resp.json()).choices[0].message.content
+  }
+  if (provider === "mistral") {
+    const resp = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+      body: JSON.stringify({ model: "mistral-large-latest", messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: userMessage }] })
+    })
+    if (!resp.ok) throw new Error(`Mistral ${resp.status}: ${await resp.text()}`)
+    return (await resp.json()).choices[0].message.content
+  }
+  throw new Error("Unknown provider")
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+
+function copyOutput(elId, feedbackId) {
+  navigator.clipboard.writeText(document.getElementById(elId).textContent.trim()).then(() => {
+    const el = document.getElementById(feedbackId)
+    el.classList.add("show")
+    setTimeout(() => el.classList.remove("show"), 2000)
+  })
+}
+
+function setQuery(query) {
+  document.getElementById("output-card").style.display = "block"
+  document.getElementById("out-query").textContent = query
+  const url = buildSalesNavUrl(query)
+  document.getElementById("out-url").textContent = url
+  document.getElementById("btn-open-url").onclick = () => window.open(url, "_blank")
+}
+
+function showError(msg) {
+  const el = document.getElementById("zone-error")
+  el.textContent = msg; el.style.display = "block"
+}
+function clearError() {
+  const el = document.getElementById("zone-error")
+  el.style.display = "none"; el.textContent = ""
+}
+function setMeta(text) { document.getElementById("out-meta").textContent = text }
+
+// ============================================================
+// SELECT POPULATION
+// ============================================================
+
+function populateLangSelect(country, savedVal) {
+  const langSel = document.getElementById("sel-lang")
+  langSel.innerHTML = ""
+  const keys = LANG_KEYS_BY_COUNTRY[country] || []
+  keys.forEach(k => {
+    const opt = document.createElement("option")
+    opt.value = k
+    opt.textContent = T("lang_" + k)
+    langSel.appendChild(opt)
+  })
+  if (savedVal) langSel.value = savedVal
+  langSel.disabled = false
+}
+
+function populateZoneSelect(country, savedVal) {
+  const zoneSel = document.getElementById("sel-zone")
+  zoneSel.innerHTML = ""
+  const defs = ZONE_DEFS[country] || []
+  defs.forEach(z => {
+    const opt = document.createElement("option")
+    opt.value = z.key || ""
+    if (z.key === "__custom__") opt.value = "__custom__"
+    opt.textContent = z.labelKey ? T(z.labelKey) : z.label
+    zoneSel.appendChild(opt)
+  })
+  // Learned zones
+  Object.entries(getLearnedGeoIds()).forEach(([name, data]) => {
+    const opt = document.createElement("option")
+    opt.value = "__learned__:" + name
+    const badge = data.confidence === "high" ? " ✓" : " ~"
+    opt.textContent = name.charAt(0).toUpperCase() + name.slice(1) + badge + " (AI)"
+    zoneSel.appendChild(opt)
+  })
+  if (savedVal) zoneSel.value = savedVal
+  zoneSel.disabled = false
+}
+
+// ============================================================
+// EVENT HANDLERS
+// ============================================================
+
+document.getElementById("sel-country").addEventListener("change", function() {
+  clearError()
+  const country = this.value
+  document.getElementById("zone-custom-wrap").style.display = "none"
+  document.getElementById("output-card").style.display = "none"
+  if (!country) {
+    document.getElementById("sel-lang").innerHTML = `<option value="">${T("sel_country_first")}</option>`
+    document.getElementById("sel-lang").disabled = true
+    document.getElementById("sel-zone").innerHTML = `<option value="">${T("sel_country_first")}</option>`
+    document.getElementById("sel-zone").disabled = true
+    return
+  }
+  populateLangSelect(country)
+  populateZoneSelect(country)
+})
+
+document.getElementById("sel-zone").addEventListener("change", function() {
+  clearError()
+  const wrap = document.getElementById("zone-custom-wrap")
+  if (this.value === "__custom__") {
+    wrap.style.display = "block"
+    document.getElementById("zone-custom").value = ""
+    document.getElementById("zone-custom").focus()
+  } else {
+    wrap.style.display = "none"
+  }
+})
+
+document.getElementById("llm-toggle").addEventListener("change", function() {
+  if (this.checked) {
+    document.getElementById("llm-modal").classList.add("open")
+  } else {
+    llmMode = false; llmApiKey = null; llmProvider = null
+  }
+})
+
+document.getElementById("llm-modal-cancel").addEventListener("click", () => {
+  document.getElementById("llm-modal").classList.remove("open")
+  document.getElementById("llm-toggle").checked = false
+  document.getElementById("llm-modal-error").style.display = "none"
+})
+
+document.getElementById("llm-modal-confirm").addEventListener("click", () => {
+  const key = document.getElementById("llm-apikey").value.trim()
+  const errEl = document.getElementById("llm-modal-error")
+  if (!key) { errEl.textContent = T("err_no_apikey"); errEl.style.display = "block"; return }
+  llmApiKey = key
+  llmProvider = document.getElementById("llm-provider").value
+  llmMode = true
+  document.getElementById("llm-apikey").value = ""
+  errEl.style.display = "none"
+  document.getElementById("llm-modal").classList.remove("open")
+})
+
+document.getElementById("btn-generate").addEventListener("click", async () => {
+  clearError()
+  const country = document.getElementById("sel-country").value
+  const lang = document.getElementById("sel-lang").value
+  const type = document.getElementById("sel-type").value
+  const zoneRaw = document.getElementById("sel-zone").value
+  const customZone = document.getElementById("zone-custom").value.trim()
+  const excludeJuniors = document.getElementById("toggle-exclude").checked
+  const headcounts = [...document.getElementById("sel-headcount").selectedOptions].map(o => o.value).filter(v => v !== "")
+
+  if (!country || !lang || !type) { alert(T("err_fill_fields")); return }
+  setMeta("")
+
+  let geoId = null, zoneKey = null, customZoneText = null
+
+  if (zoneRaw === "__custom__") {
+    customZoneText = customZone
+    if (!customZoneText) { showError(T("err_fill_zone")); return }
+    const resolved = resolveGeoId(country, null, customZoneText)
+    if (resolved.id) {
+      geoId = resolved.id
+      zoneKey = resolved.normalized
+      const confBadge = resolved.confidence === "high" ? "✓ high" : "~ low"
+      setMeta(`${T("meta_resolved")} : ${customZoneText} → ${geoId} [${confBadge}]`)
+    } else if (!llmMode) {
+      showError(T("err_zone_unknown")); return
+    }
+  } else if (zoneRaw && zoneRaw.startsWith("__learned__:")) {
+    const zoneName = zoneRaw.replace("__learned__:", "")
+    const learned = getLearnedGeoIds()
+    if (learned[zoneName]) { geoId = learned[zoneName].id; zoneKey = zoneName }
+  } else if (zoneRaw) {
+    geoId = GEO_IDS[`${country}:${zoneRaw}`] || null
+    zoneKey = zoneRaw
+  } else {
+    geoId = GEO_IDS[country]
+  }
+
+  if (geoId && !customZoneText) {
+    const query = buildQuery(geoId, lang, type, excludeJuniors, country, zoneKey, headcounts)
+    setQuery(query)
+    const hcLabel = headcounts.length ? ` | ${T("meta_size")}: ${headcounts.join(",")}` : ""
+    setMeta(`${T("meta_static")} — zone: ${zoneKey || T("zone_all_country").toLowerCase()} | geo_id: ${geoId}${hcLabel}`)
+    return
+  }
+
+  if (!llmMode) { showError(T("err_zone_unknown")); return }
+
+  const spinner = document.getElementById("spinner")
+  const btn = document.getElementById("btn-generate")
+  spinner.classList.add("active"); btn.disabled = true
+
+  try {
+    const COUNTRY_NAMES = { ch:"Suisse", fr:"France", be:"Belgique", de:"Allemagne" }
+    const TYPE_NAMES = { agents:"agents immobiliers", dirigeants:"dirigeants d'agences", cabinets:"cabinets/sociétés immobilières", acquisition:"acquisition / investissement immobilier" }
+    const userMsg = `Génère une query Sales Navigator pour :\n- Pays : ${COUNTRY_NAMES[country]}\n- Langue : ${lang}\n- Type de cible : ${TYPE_NAMES[type]}\n- Zone : ${customZoneText || zoneKey || "tout le pays"}\n- Exclure juniors : ${excludeJuniors}`
+
+    const rawResponse = await callLLM(userMsg)
+    let parsed
+    try { parsed = JSON.parse(rawResponse.trim().replace(/^```json\n?/, "").replace(/\n?```$/, "")) }
+    catch { throw new Error("Unparseable LLM response: " + rawResponse.substring(0, 200)) }
+
+    if (!parsed.query) throw new Error(T("err_no_query") || "No 'query' in LLM response.")
+
+    setQuery(parsed.query)
+    const confBadge = parsed.geo_confidence === "high" ? "✓ high" : "~ low"
+    setMeta(`${T("meta_llm") || "AI Mode"} (${llmProvider}) — geo_id: ${parsed.geo_id} [${confBadge}] | lang: ${parsed.lang}`)
+
+    if (parsed.geo_id && parsed.geo_name) storeGeoId(parsed.geo_name, parsed.geo_id, parsed.geo_confidence || "low")
+    mergeToTemplates(parsed)
+    saveToHistory({ prompt: userMsg, query: parsed.query, keywords: parsed.keywords_used || [], geo_id: parsed.geo_id, geo_name: parsed.geo_name, lang: parsed.lang, provider: llmProvider, country, type, zone: customZoneText || zoneKey, timestamp: Date.now() })
+
+  } catch(err) {
+    showError("LLM error: " + err.message)
+  } finally {
+    spinner.classList.remove("active"); btn.disabled = false
+  }
+})
+
+document.getElementById("btn-reset-form").addEventListener("click", () => {
+  document.getElementById("sel-country").value = ""
+  document.getElementById("sel-lang").innerHTML = `<option value="">${T("sel_country_first")}</option>`
+  document.getElementById("sel-lang").disabled = true
+  document.getElementById("sel-zone").innerHTML = `<option value="">${T("sel_country_first")}</option>`
+  document.getElementById("sel-zone").disabled = true
+  document.getElementById("zone-custom-wrap").style.display = "none"
+  document.getElementById("zone-custom").value = ""
+  document.getElementById("sel-type").value = ""
+  Array.from(document.getElementById("sel-headcount").options).forEach(o => o.selected = false)
+  document.getElementById("toggle-exclude").checked = true
+  document.getElementById("output-card").style.display = "none"
+  clearError()
+})
+
+// ============================================================
+// TAB NAVIGATION
+// ============================================================
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"))
+    btn.classList.add("active")
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active")
+    if (btn.dataset.tab === "learned") renderLearned()
+    if (btn.dataset.tab === "history") renderHistory()
+  })
+})
+
+// ============================================================
+// RENDER LEARNED BASE
+// ============================================================
+
+function renderLearned() { renderLearnedTitles(); renderLearnedKeywords() }
+
+function renderLearnedTitles() {
+  const container = document.getElementById("learned-titles-content")
+  const titles = getLearnedTitles()
+  const keys = Object.keys(titles)
+  if (!keys.length) {
+    container.innerHTML = `<div class="empty-state"><p>${T("empty_titles")}</p><small>${T("empty_titles_sub")}</small></div>`
+    return
+  }
+  let html = `<table><thead><tr><th>${T("th_key")}</th><th>${T("th_terms")}</th></tr></thead><tbody>`
+  keys.forEach(key => {
+    const data = titles[key]
+    const inc = (data.include || []).map(t => `<span class="tag" onclick="removeTitleTerm('${key}','include','${t}')" title="${T("click_remove")}">${t} ×</span>`).join("")
+    const sec = (data.sector || []).map(t => `<span class="tag sector" onclick="removeTitleTerm('${key}','sector','${t}')" title="${T("click_remove")}">${t} ×</span>`).join("")
+    const exc = (data.exclude || []).map(t => `<span class="tag exclude" onclick="removeTitleTerm('${key}','exclude','${t}')" title="${T("click_remove")}">${t} ×</span>`).join("")
+    html += `<tr><td><strong>${key}</strong></td><td>${inc || '<em style="color:var(--muted)">—</em>'}${sec ? "<br>" + sec : ""}${exc ? "<br>" + exc : ""}</td></tr>`
+  })
+  html += "</tbody></table>"
+  container.innerHTML = html
+}
+
+function renderLearnedKeywords() {
+  const container = document.getElementById("learned-keywords-content")
+  const kw = getLearnedKeywords()
+  const keys = Object.keys(kw)
+  if (!keys.length) {
+    container.innerHTML = `<div class="empty-state"><p>${T("empty_keywords")}</p></div>`
+    return
+  }
+  let html = `<table><thead><tr><th>${T("th_context")}</th><th>${T("th_keywords")}</th></tr></thead><tbody>`
+  keys.forEach(key => {
+    const terms = (kw[key] || []).map(t => `<span class="tag" onclick="removeKeywordTerm('${key}','${t.replace(/'/g,"\\'")}')">\"${t}\" ×</span>`).join("")
+    html += `<tr><td><strong>${key}</strong></td><td>${terms || '<em style="color:var(--muted)">—</em>'}</td></tr>`
+  })
+  html += "</tbody></table>"
+  container.innerHTML = html
+}
+
+function removeTitleTerm(key, field, term) {
+  const titles = getLearnedTitles()
+  if (titles[key]?.[field]) {
+    titles[key][field] = titles[key][field].filter(t => t !== term)
+    localStorage.setItem("salesnav_titles", JSON.stringify(titles))
+    renderLearnedTitles()
+  }
+}
+
+function removeKeywordTerm(key, term) {
+  const kw = getLearnedKeywords()
+  if (kw[key]) {
+    kw[key] = kw[key].filter(t => t !== term)
+    localStorage.setItem("salesnav_keywords", JSON.stringify(kw))
+    renderLearnedKeywords()
+  }
+}
+
+function resetLearned() {
+  if (!confirm(T("confirm_reset"))) return
+  localStorage.removeItem("salesnav_titles")
+  localStorage.removeItem("salesnav_keywords")
+  localStorage.removeItem("salesnav_geo_ids")
+  renderLearned()
+}
+
+function exportLearnedJSON() {
+  const data = { titles: getLearnedTitles(), keywords: getLearnedKeywords(), geo_ids: getLearnedGeoIds(), exported_at: new Date().toISOString() }
+  const a = document.createElement("a")
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }))
+  a.download = "salesnav_learned_" + Date.now() + ".json"
+  a.click()
+}
+
+// ============================================================
+// RENDER HISTORY
+// ============================================================
+
+function renderHistory() {
+  const container = document.getElementById("history-content")
+  const history = getHistory()
+  if (!history.length) {
+    container.innerHTML = `<div class="empty-state"><p>${T("empty_history")}</p><small>${T("empty_history_sub")}</small></div>`
+    return
+  }
+  const locale = currentLang === "fr" ? "fr-CH" : "en-GB"
+  let html = ""
+  history.forEach((entry, idx) => {
+    const date = new Date(entry.timestamp).toLocaleString(locale)
+    const kws = (entry.keywords || []).slice(0, 8).map(k => `<span class="tag">${k}</span>`).join("")
+    const hasMore = (entry.keywords || []).length > 8 ? `<span style="color:var(--muted);font-size:11px;">+${(entry.keywords || []).length - 8}</span>` : ""
+    html += `<div class="history-entry">
+      <div class="meta">
+        <span class="provider">${entry.provider || ""}</span>
+        <span style="font-size:12px;font-weight:600;">${(entry.country||"").toUpperCase()} ${entry.lang || ""} — ${entry.type || ""}</span>
+        ${entry.zone ? `<span style="font-size:12px;color:var(--muted);">📍 ${entry.zone}</span>` : ""}
+        <span class="date">${date}</span>
+      </div>
+      <div class="query-preview">${entry.query || ""}</div>
+      ${kws ? `<div class="kw-list">${kws}${hasMore}</div>` : ""}
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="reuseQuery(${idx})">${T("btn_reuse")}</button>
+      </div>
+    </div>`
+  })
+  container.innerHTML = html
+}
+
+function reuseQuery(idx) {
+  const entry = getHistory()[idx]
+  if (!entry) return
+  setQuery(entry.query)
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"))
+  document.querySelector('.tab-btn[data-tab="generator"]').classList.add("active")
+  document.getElementById("tab-generator").classList.add("active")
+  const locale = currentLang === "fr" ? "fr-CH" : "en-GB"
+  setMeta(`${T("meta_reused")} (${entry.provider}, ${new Date(entry.timestamp).toLocaleDateString(locale)})`)
+  document.getElementById("output-card").scrollIntoView({ behavior: "smooth" })
+}
+
+function clearHistory() {
+  if (!confirm(T("confirm_clear_history"))) return
+  localStorage.removeItem("salesnav_results_history")
+  renderHistory()
+}
+
+// ============================================================
+// SHARED DATA (collaborative sync via GitHub raw)
+// ============================================================
+
+const SHARED_DATA_URL = "" // Set to raw GitHub URL: https://raw.githubusercontent.com/your-org/salesnav-generator/main/learned_data.json
+
+async function loadSharedData() {
+  if (!SHARED_DATA_URL) return
+  const status = document.getElementById("shared-status")
+  if (status) { status.textContent = T("shared_loading"); status.className = "shared-status loading"; status.style.display = "inline" }
+  try {
+    const res = await fetch(SHARED_DATA_URL, { cache: "no-cache" })
+    if (!res.ok) throw new Error(res.status)
+    const shared = await res.json()
+    mergeSharedLearned(shared)
+    if (status) { status.textContent = T("shared_loaded"); status.className = "shared-status ok" }
+  } catch {
+    if (status) { status.textContent = T("shared_error"); status.className = "shared-status err" }
+  }
+}
+
+function mergeSharedLearned(shared) {
+  if (!shared) return
+  if (shared.geo_ids) {
+    const local = getLearnedGeoIds()
+    Object.entries(shared.geo_ids).forEach(([name, val]) => {
+      if (!local[name] || (val.confidence === "high" && local[name].confidence !== "high")) {
+        local[name] = { ...val, source: "shared" }
+      }
+    })
+    localStorage.setItem("salesnav_geo_ids", JSON.stringify(local))
+  }
+  if (shared.titles) {
+    const local = getLearnedTitles()
+    Object.entries(shared.titles).forEach(([key, val]) => {
+      if (!local[key]) local[key] = { include: [], sector: [], exclude: [] }
+      ;(val.include || []).forEach(t => { if (!local[key].include.includes(t)) local[key].include.push(t) })
+      ;(val.sector || []).forEach(t => { if (!local[key].sector.includes(t)) local[key].sector.push(t) })
+      ;(val.exclude || []).forEach(t => { if (!local[key].exclude.includes(t)) local[key].exclude.push(t) })
+    })
+    localStorage.setItem("salesnav_titles", JSON.stringify(local))
+  }
+  if (shared.keywords) {
+    const local = getLearnedKeywords()
+    Object.entries(shared.keywords).forEach(([key, terms]) => {
+      if (!local[key]) local[key] = []
+      ;(terms || []).forEach(t => { if (!local[key].includes(t)) local[key].push(t) })
+    })
+    localStorage.setItem("salesnav_keywords", JSON.stringify(local))
+  }
+}
+
+function exportContribution() {
+  const data = {
+    version: 1,
+    last_updated: new Date().toISOString().split("T")[0],
+    geo_ids: getLearnedGeoIds(),
+    titles: getLearnedTitles(),
+    keywords: getLearnedKeywords()
+  }
+  document.getElementById("contribute-json").textContent = JSON.stringify(data, null, 2)
+  document.getElementById("contribute-modal").classList.add("open")
+}
+
+function copyContributeJSON() {
+  const text = document.getElementById("contribute-json").textContent
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("btn-copy-contribute")
+    const orig = btn.textContent
+    btn.textContent = "✓ " + T("copied")
+    setTimeout(() => { btn.textContent = T("contribute_copy"); applyLang() }, 2000)
+  })
+}
+
+// ============================================================
+// INIT
+// ============================================================
+applyLang()
+loadSharedData()
+</script>
+</body>
+</html>
