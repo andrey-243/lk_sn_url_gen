@@ -230,18 +230,17 @@ tr:last-child td { border-bottom: none; }
 
         <div class="field">
           <label data-i18n="label_headcount">Taille d'entreprise</label>
-          <select id="sel-headcount" multiple size="4" style="height:auto;padding:4px;">
-            <option value="" data-i18n="all_sizes">Toutes tailles (défaut)</option>
-            <option value="A">Self-employed</option>
-            <option value="B">1–10</option>
-            <option value="C">11–50</option>
-            <option value="D">51–200</option>
-            <option value="E">201–500</option>
-            <option value="F">1 001–5 000</option>
-            <option value="G">5 001–10 000</option>
-            <option value="H">10 001+</option>
-          </select>
-          <small style="color:var(--muted);font-size:11px;" data-i18n="headcount_hint">Ctrl+clic pour sélection multiple. Aucune sélection = pas de filtre.</small>
+          <div id="sel-headcount" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;padding:6px 0;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="A" checked> Self-employed</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="B" checked> 1–10</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="C" checked> 11–50</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="D" checked> 51–200</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="E" checked> 201–500</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="F" checked> 1 001–5 000</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="G" checked> 5 001–10 000</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" value="H" checked> 10 001+</label>
+          </div>
+          <small style="color:var(--muted);font-size:11px;">Tout coché = pas de filtre taille. Décocher = exclure.</small>
         </div>
 
         <div class="field">
@@ -1023,7 +1022,9 @@ document.getElementById("btn-generate").addEventListener("click", async () => {
   const zoneRaw = document.getElementById("sel-zone").value
   const customZone = document.getElementById("zone-custom").value.trim()
   const excludeJuniors = document.getElementById("toggle-exclude").checked
-  const headcounts = [...document.getElementById("sel-headcount").selectedOptions].map(o => o.value).filter(v => v !== "")
+  const allHcBoxes = [...document.getElementById("sel-headcount").querySelectorAll("input[type=checkbox]")]
+  const checkedHc = allHcBoxes.filter(c => c.checked).map(c => c.value)
+  const headcounts = checkedHc.length === allHcBoxes.length ? [] : checkedHc
 
   if (!country || !lang || !type) { alert(T("err_fill_fields")); return }
   setMeta("")
@@ -1103,7 +1104,7 @@ document.getElementById("btn-reset-form").addEventListener("click", () => {
   document.getElementById("zone-custom-wrap").style.display = "none"
   document.getElementById("zone-custom").value = ""
   document.getElementById("sel-type").value = ""
-  Array.from(document.getElementById("sel-headcount").options).forEach(o => o.selected = false)
+  document.getElementById("sel-headcount").querySelectorAll("input[type=checkbox]").forEach(c => c.checked = true)
   document.getElementById("toggle-exclude").checked = true
   document.getElementById("output-card").style.display = "none"
   clearError()
