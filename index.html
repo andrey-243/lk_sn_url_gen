@@ -678,6 +678,16 @@ const EXCLUSIONS = {
   }
 }
 
+// OOS companies excluded from keywords to avoid paying for off-scope scrapes (Julius Baer skipped — RE subsidiary in scope)
+const COMPANY_EXCLUSIONS = [
+  "UBS", "Credit Suisse", "AXA", "Allianz", "Zurich Insurance",
+  "Swiss Life", "Deloitte", "KPMG", "PwC", "Ernst & Young",
+  "McKinsey", "Nestlé", "Novartis", "Roche", "ABB",
+  "Helvetia", "Mobiliar", "Baloise", "PostFinance", "Raiffeisen",
+  "Vontobel", "Pictet", "Adecco", "Randstad"
+]
+const _COMPANY_NOT = COMPANY_EXCLUSIONS.map(c => `NOT "${c}"`).join(" ")
+
 const HARDCODED_KEYWORDS = {
   "ch:fr":        `("MLS" OR "CRM immobilier" OR "REDS" OR "Immostreet" OR "Century 21" OR "Coldwell Banker" OR "RE/MAX" OR "Wüest Partner" OR "courtier" OR "négociation" OR "évaluation" OR "expertise foncière" OR "rendement locatif" OR "plus-value" OR "hypothèque" OR "financement" OR "CECB" OR "certificat énergétique" OR "copropriété" OR "PPE" OR "cadastre" OR "notaire" OR "acte authentique" OR "compromis" OR "mandat exclusif")`,
   "ch:fr:geneve": `("Permis G" OR "Autorisation CGCI" OR "USPI" OR "SVIT" OR "Chambre Genevoise" OR "transaction immobilière" OR "évaluation immobilière" OR "expertise immobilière" OR "million CHF" OR "millions CHF" OR "Genève immobilier" OR "marché genevois")`,
@@ -772,15 +782,19 @@ function buildKeywords(country, lang, zoneKey) {
   const learnedKw = getLearnedKeywords()
   const learnedZone = learnedKw[key] || []
   const learnedBase = learnedKw[fallbackKey] || []
+  let kw
   if (hcZone) {
-    if (!learnedZone.length) return hcZone
-    return hcZone.replace(/\)$/, ` OR ${learnedZone.map(k => `"${k}"`).join(" OR ")})`)
+    kw = learnedZone.length
+      ? hcZone.replace(/\)$/, ` OR ${learnedZone.map(k => `"${k}"`).join(" OR ")})`)
+      : hcZone
+  } else if (hcBase) {
+    kw = learnedBase.length
+      ? hcBase.replace(/\)$/, ` OR ${learnedBase.map(k => `"${k}"`).join(" OR ")})`)
+      : hcBase
+  } else {
+    kw = `("immobilier" OR "real estate")`
   }
-  if (hcBase) {
-    if (!learnedBase.length) return hcBase
-    return hcBase.replace(/\)$/, ` OR ${learnedBase.map(k => `"${k}"`).join(" OR ")})`)
-  }
-  return `("immobilier" OR "real estate")`
+  return `${kw} ${_COMPANY_NOT}`
 }
 
 const HEADCOUNT_LABELS = { A:"Self-employed", B:"1-10", C:"11-50", D:"51-200", E:"201-500", F:"1001-5000", G:"5001-10000", H:"10001+" }
